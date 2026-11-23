@@ -1,0 +1,60 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main() {
+    int server_fd, client_fd;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+
+    char buffer[1024] = {0};
+    char reply[1024];
+
+    // 1. Create socket
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    // 2. Configure server address
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(9999);
+
+    // 3. Bind and listen
+    bind(server_fd, (struct sockaddr *)&address, sizeof(address));
+    listen(server_fd, 1);
+
+    printf("Waiting for client...\n");
+
+    // 4. Accept client connection
+    client_fd = accept(server_fd, (struct sockaddr *)&address,
+                       (socklen_t *)&addrlen);
+
+    printf("Client connected!\n");
+
+    // 5. Two-way chat loop
+    while (1) {
+        memset(buffer, 0, sizeof(buffer));
+
+        read(client_fd, buffer, sizeof(buffer));
+
+        if (strncmp(buffer, "exit", 4) == 0)
+            break;
+
+        printf("Client: %s", buffer);
+
+        printf("You: ");
+        fgets(reply, sizeof(reply), stdin);
+
+        send(client_fd, reply, strlen(reply), 0);
+
+        if (strncmp(reply, "exit", 4) == 0)
+            break;
+    }
+
+    // 6. Close sockets
+    close(client_fd);
+    close(server_fd);
+
+    return 0;
+}
